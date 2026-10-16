@@ -29,6 +29,10 @@ public class RegisterRequest {
     @NotNull
     private Role role;
 
+    /**
+     * Converts this request to a User entity. Takes the already-hashed password,
+     * trims the text fields, and sets verified=false until the OTP is confirmed.
+     */
     public User toEntity(String encodedPassword) {
         return User.builder()
                 .fullName(fullName.trim())

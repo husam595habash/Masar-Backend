@@ -24,6 +24,9 @@ public class UserDto {
     private boolean verified;
     private Instant createdAt;
 
+    /**
+     * Converts a User entity to a safe DTO (no password) for API responses.
+     */
     public static UserDto from(User user) {
         return UserDto.builder()
                 .id(user.getId())
@@ -35,6 +38,9 @@ public class UserDto {
                 .build();
     }
 
+    /**
+     * Converts this DTO back to a User entity (currently unused).
+     */
     public User toEntity() {
         return User.builder()
                 .id(id)

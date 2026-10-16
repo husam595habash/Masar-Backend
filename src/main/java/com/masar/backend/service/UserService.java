@@ -1,5 +1,12 @@
 package com.masar.backend.service;
 
+import com.masar.backend.dto.user.ChangePasswordRequest;
+import com.masar.backend.exception.InvalidPasswordException;
+import com.masar.backend.exception.ResourceNotFoundException;
+import com.masar.backend.repository.UserRepository;
+import com.masar.backend.model.User;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -8,6 +15,29 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class UserService {
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    public void changePassword(String email,ChangePasswordRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new InvalidPasswordException("Current password is incorrect");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new InvalidPasswordException("New password must be different from the current one");
+        }
+        String newPassword = request.getNewPassword();
+        String encodedNewPassword = passwordEncoder.encode(newPassword);
+        user.setPassword(encodedNewPassword);
+        userRepository.save(user);
+    }
 
     // TODO: getCurrentUser(email)       -> used by GET /api/users/me
     // TODO: updateProfile(email, ...)

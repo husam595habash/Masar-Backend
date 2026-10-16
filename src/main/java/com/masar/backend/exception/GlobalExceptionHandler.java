@@ -67,6 +67,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 400: wrong current password, or the new password is the same as the old one.
+     */
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidPassword(InvalidPasswordException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody(ex.getMessage()));
+    }
+
+    /**
      * 409: the account is already verified.
      */
     @ExceptionHandler(AccountAlreadyVerifiedException.class)

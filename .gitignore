@@ -39,3 +39,9 @@ out/
 ### macOS / secrets ###
 .DS_Store
 .env
+.env.*
+!.env.example
+
+### Leftovers ###
+*.removed
+removed-ratelimit/

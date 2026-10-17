@@ -17,9 +17,11 @@ import org.springframework.stereotype.Service;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    private final AuthVersionService authVersionService;
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthVersionService authVersionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.authVersionService =  authVersionService;
     }
 
     public void changePassword(String email,ChangePasswordRequest request) {
@@ -36,7 +38,11 @@ public class UserService {
         String newPassword = request.getNewPassword();
         String encodedNewPassword = passwordEncoder.encode(newPassword);
         user.setPassword(encodedNewPassword);
+        user.setAuthVersion(user.getAuthVersion() + 1);
         userRepository.save(user);
+        authVersionService.evict(email);
+
+
     }
 
     // TODO: getCurrentUser(email)       -> used by GET /api/users/me

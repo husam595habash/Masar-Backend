@@ -1,5 +1,6 @@
 package com.masar.backend.security;
 
+import com.masar.backend.service.AuthVersionService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,11 +22,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
+    private final AuthVersionService authVersionService;
 
 
-    public JwtAuthFilter(JwtService jwtService, CustomUserDetailsService userDetailsService) {
+    public JwtAuthFilter(JwtService jwtService,
+                         CustomUserDetailsService userDetailsService,
+                         AuthVersionService authVersionService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.authVersionService = authVersionService;
     }
 
     /**
@@ -53,6 +58,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 String email = jwtService.extractEmail(token);
+
+                // The token is valid only if it carries the user's current authVersion.
+                // A password change raises the version, so older tokens stop working.
+                if (jwtService.extractAuthVersion(token) != authVersionService.current(email)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
                 UsernamePasswordAuthenticationToken authentication =

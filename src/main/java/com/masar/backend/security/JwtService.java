@@ -37,6 +37,7 @@ public class JwtService {
         return Jwts.builder()
                 .subject(user.getEmail())
                 .claim("role", user.getRole().name())
+                .claim("ver", user.getAuthVersion())
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expirationMs))
                 .signWith(key)
@@ -48,6 +49,12 @@ public class JwtService {
      */
     public String extractEmail(String token) {
         return parseClaims(token).getSubject();
+    }
+
+
+    public int extractAuthVersion(String token) {
+        Integer ver = parseClaims(token).get("ver", Integer.class);
+        return ver == null ? 0 : ver;
     }
 
     /**

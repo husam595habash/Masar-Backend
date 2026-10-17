@@ -27,6 +27,10 @@ public class User {
     @Column(nullable = false)
     private String fullName;
 
+    @Column(nullable = false, columnDefinition = "int default 0")
+    @Builder.Default
+    private int authVersion = 0;
+
     @Column(nullable = false, unique = true)
     private String email;
 

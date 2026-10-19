@@ -78,13 +78,6 @@ public class OtpStore {
     }
 
     /**
-     * Starts (or restarts) the cooldown.
-     */
-    public void startCooldown(String email, Duration cooldown) {
-        redis.opsForValue().set(COOLDOWN_PREFIX + email, "1", cooldown);
-    }
-
-    /**
      * Seconds left before a new code may be requested (0 if none).
      */
     public long cooldownSecondsLeft(String email) {

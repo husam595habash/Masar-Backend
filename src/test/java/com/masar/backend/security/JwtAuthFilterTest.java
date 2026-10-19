@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.io.IOException;
@@ -32,7 +33,7 @@ import static org.mockito.Mockito.when;
 class JwtAuthFilterTest {
 
     @Mock private JwtService jwtService;
-    @Mock private CustomUserDetailsService userDetailsService;
+    @Mock private UserDetailsService userDetailsService;
     @Mock private AuthVersionService authVersionService;
 
     @InjectMocks

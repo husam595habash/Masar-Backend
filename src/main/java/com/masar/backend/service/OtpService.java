@@ -3,9 +3,7 @@ package com.masar.backend.service;
 import com.masar.backend.exception.EmailSendException;
 import com.masar.backend.exception.InvalidOtpException;
 import com.masar.backend.exception.TooManyRequestsException;
-import com.masar.backend.infra.EmailService;
 import com.masar.backend.infra.OtpStore;
-import org.springframework.mail.MailException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,8 +18,6 @@ import java.time.Duration;
 @Service
 public class OtpService {
 
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(OtpService.class);
-
     private static final SecureRandom RANDOM = new SecureRandom();
 
     /** How long a code is valid. */
@@ -32,20 +28,20 @@ public class OtpService {
     private static final int MAX_ATTEMPTS = 5;
 
     private final OtpStore otpStore;
-    private final EmailService emailService;
+    private final OtpSender otpSender;
     private final PasswordEncoder passwordEncoder;
 
     public OtpService(OtpStore otpStore,
-                      EmailService emailService,
+                      OtpSender otpSender,
                       PasswordEncoder passwordEncoder) {
         this.otpStore = otpStore;
-        this.emailService = emailService;
+        this.otpSender = otpSender;
         this.passwordEncoder = passwordEncoder;
     }
 
     /**
      * Creates a new code for this email, stores only its hash in Redis (replacing any old
-     * code, expires after 5 minutes), then emails the plain code.
+     * code, expires after 5 minutes), then sends the plain code.
      * Throws EmailSendException if sending fails.
      */
     public void issueOtp(String email) {
@@ -55,11 +51,10 @@ public class OtpService {
 
         otpStore.save(email, passwordEncoder.encode(otp), OTP_TTL);
         try {
-            emailService.sendOtp(email, otp);
-        } catch (MailException e) {
-            log.error("Could not send OTP email to {}", email, e);   // shows the real cause in the console
+            otpSender.sendOtp(email, otp);
+        } catch (EmailSendException e) {
             otpStore.delete(email);   // nothing was delivered, so do not make the user wait
-            throw new EmailSendException();
+            throw e;
         }
     }
 

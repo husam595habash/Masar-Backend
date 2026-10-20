@@ -3,7 +3,6 @@ package com.masar.backend.service;
 import com.masar.backend.exception.EmailSendException;
 import com.masar.backend.exception.InvalidOtpException;
 import com.masar.backend.exception.TooManyRequestsException;
-import com.masar.backend.infra.EmailService;
 import com.masar.backend.infra.OtpStore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -13,7 +12,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mail.MailSendException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Duration;
@@ -37,7 +35,7 @@ class OtpServiceTest {
     private static final String EMAIL = "ali@mail.com";
 
     @Mock private OtpStore otpStore;
-    @Mock private EmailService emailService;
+    @Mock private OtpSender otpSender;
     @Mock private PasswordEncoder passwordEncoder;
 
     @InjectMocks
@@ -56,7 +54,7 @@ class OtpServiceTest {
             otpService.issueOtp(EMAIL);
 
             ArgumentCaptor<String> plain = ArgumentCaptor.forClass(String.class);
-            verify(emailService).sendOtp(eq(EMAIL), plain.capture());
+            verify(otpSender).sendOtp(eq(EMAIL), plain.capture());
             assertThat(plain.getValue()).matches("\\d{6}");
             verify(passwordEncoder).encode(plain.getValue());
             verify(otpStore).save(EMAIL, "HASH", Duration.ofMinutes(5));
@@ -71,7 +69,7 @@ class OtpServiceTest {
             assertThatThrownBy(() -> otpService.issueOtp(EMAIL)).isInstanceOf(TooManyRequestsException.class);
 
             verify(otpStore, never()).save(any(), any(), any());
-            verifyNoInteractions(emailService);
+            verifyNoInteractions(otpSender);
         }
 
         @Test
@@ -79,7 +77,7 @@ class OtpServiceTest {
         void emailFails() {
             when(otpStore.tryStartCooldown(EMAIL, Duration.ofSeconds(60))).thenReturn(true);
             when(passwordEncoder.encode(anyString())).thenReturn("HASH");
-            doThrow(new MailSendException("smtp down")).when(emailService).sendOtp(eq(EMAIL), anyString());
+            doThrow(new EmailSendException()).when(otpSender).sendOtp(eq(EMAIL), anyString());
 
             assertThatThrownBy(() -> otpService.issueOtp(EMAIL)).isInstanceOf(EmailSendException.class);
 
@@ -150,7 +148,7 @@ class OtpServiceTest {
                     .hasMessageContaining("42");
 
             verify(otpStore, never()).save(any(), any(), any());
-            verifyNoInteractions(emailService);
+            verifyNoInteractions(otpSender);
         }
 
         @Test
@@ -161,7 +159,7 @@ class OtpServiceTest {
 
             assertThatCode(() -> otpService.issueOtp(EMAIL)).doesNotThrowAnyException();
 
-            verify(emailService).sendOtp(eq(EMAIL), anyString());
+            verify(otpSender).sendOtp(eq(EMAIL), anyString());
         }
     }
 }

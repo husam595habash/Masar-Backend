@@ -14,7 +14,9 @@ import com.masar.backend.exception.TooManyRequestsException;
 import com.masar.backend.exception.UnverifiedAccountException;
 import com.masar.backend.dto.user.RegisterRequest;
 import com.masar.backend.exception.EmailAlreadyExistsException;
+import com.masar.backend.model.SeekerProfile;
 import com.masar.backend.model.User;
+import com.masar.backend.repository.SeekerProfileRepository;
 import com.masar.backend.repository.UserRepository;
 import com.masar.backend.security.JwtService;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,6 +54,7 @@ class AuthServiceTest {
     @Mock private JwtService jwtService;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private OtpService otpService;
+    @Mock private SeekerProfileRepository seekerProfileRepository;
 
     @InjectMocks
     private AuthService authService;
@@ -210,7 +213,20 @@ class AuthServiceTest {
             assertThat(user.isVerified()).isTrue();
             assertThat(response.getToken()).isEqualTo("token");
             verify(userRepository).save(user);
+            verify(seekerProfileRepository).save(any(SeekerProfile.class));
             verify(otpService).clear("ali@mail.com");
+        }
+
+        @Test
+        @DisplayName("recruiter gets no seeker profile")
+        void recruiterHasNoSeekerProfile() {
+            user.setRole(Role.RECRUITER);
+            when(userRepository.findByEmail("ali@mail.com")).thenReturn(Optional.of(user));
+            when(jwtService.generateToken(user)).thenReturn("token");
+
+            authService.verifyOtp(request);
+
+            verify(seekerProfileRepository, never()).save(any());
         }
 
         @Test

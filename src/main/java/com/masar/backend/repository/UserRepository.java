@@ -22,4 +22,13 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Modifying
     @Query("update User u set u.cvPath = :cvPath where u.id = :id")
     int updateCvPath(@Param("id") String id, @Param("cvPath") String cvPath);
+
+    /**
+     * Changes only the full name (same reason as updateCvPath: never write the whole user back).
+     * clearAutomatically makes the next read load the new name from the database.
+     */
+    @Transactional
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update User u set u.fullName = :fullName where u.id = :id")
+    int updateFullName(@Param("id") String id, @Param("fullName") String fullName);
 }

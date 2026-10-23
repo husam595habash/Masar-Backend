@@ -45,7 +45,5 @@ public class UserService {
 
     }
 
-    // TODO: getCurrentUser(email)       -> used by GET /api/users/me
     // TODO: updateProfile(email, ...)
-    // TODO: changePassword(email, ...)
 }

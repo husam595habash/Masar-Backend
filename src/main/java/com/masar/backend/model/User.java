@@ -52,4 +52,7 @@ public class User {
 
     @Column(nullable = true)
     private String cvPath;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private SeekerProfile seekerProfile;
 }

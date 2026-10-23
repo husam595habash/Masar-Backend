@@ -37,17 +37,4 @@ public class UserDto {
                 .createdAt(user.getCreatedAt())
                 .build();
     }
-
-    /**
-     * Converts this DTO back to a User entity (currently unused).
-     */
-    public User toEntity() {
-        return User.builder()
-                .id(id)
-                .fullName(fullName)
-                .email(email)
-                .role(role)
-                .verified(verified)
-                .build();
-    }
 }

@@ -12,7 +12,10 @@ import com.masar.backend.exception.AccountAlreadyVerifiedException;
 import com.masar.backend.exception.EmailAlreadyExistsException;
 import com.masar.backend.exception.InvalidOtpException;
 import com.masar.backend.exception.UnverifiedAccountException;
+import com.masar.backend.enums.Role;
+import com.masar.backend.model.SeekerProfile;
 import com.masar.backend.model.User;
+import com.masar.backend.repository.SeekerProfileRepository;
 import com.masar.backend.repository.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -33,17 +36,20 @@ public class AuthService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final OtpService otpService;
+    private final SeekerProfileRepository seekerProfileRepository;
 
     public AuthService(AuthenticationManager authenticationManager,
                        UserRepository userRepository,
                        JwtService jwtService,
                        PasswordEncoder passwordEncoder,
-                       OtpService otpService) {
+                       OtpService otpService,
+                       SeekerProfileRepository seekerProfileRepository) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.otpService = otpService;
+        this.seekerProfileRepository = seekerProfileRepository;
     }
 
     /**
@@ -126,6 +132,10 @@ public class AuthService {
 
         user.setVerified(true);
         userRepository.save(user);
+        if (user.getRole() == Role.JOB_SEEKER) {
+            // every seeker gets an empty profile now, so GET /api/seekers/me needs only one query
+            seekerProfileRepository.save(SeekerProfile.builder().user(user).build());
+        }
         otpService.clear(email);
 
         return new AuthResponse(jwtService.generateToken(user), UserDto.from(user));

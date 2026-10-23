@@ -1,5 +1,7 @@
 package com.masar.backend.service;
 
+import com.masar.backend.model.RecruiterProfile;
+import com.masar.backend.repository.RecruiterProfileRepository;
 import com.masar.backend.security.JwtService;
 import com.masar.backend.dto.auth.AuthResponse;
 import com.masar.backend.dto.auth.LoginRequest;
@@ -37,19 +39,22 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final OtpService otpService;
     private final SeekerProfileRepository seekerProfileRepository;
+    private final RecruiterProfileRepository recruiterProfileRepository;
 
     public AuthService(AuthenticationManager authenticationManager,
                        UserRepository userRepository,
                        JwtService jwtService,
                        PasswordEncoder passwordEncoder,
                        OtpService otpService,
-                       SeekerProfileRepository seekerProfileRepository) {
+                       SeekerProfileRepository seekerProfileRepository,
+                       RecruiterProfileRepository recruiterProfileRepository) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.otpService = otpService;
         this.seekerProfileRepository = seekerProfileRepository;
+        this.recruiterProfileRepository = recruiterProfileRepository;
     }
 
     /**
@@ -135,6 +140,8 @@ public class AuthService {
         if (user.getRole() == Role.JOB_SEEKER) {
             // every seeker gets an empty profile now, so GET /api/seekers/me needs only one query
             seekerProfileRepository.save(SeekerProfile.builder().user(user).build());
+        } else if (user.getRole() == Role.RECRUITER) {
+            recruiterProfileRepository.save(RecruiterProfile.builder().user(user).build());
         }
         otpService.clear(email);
 

@@ -14,8 +14,10 @@ import com.masar.backend.exception.TooManyRequestsException;
 import com.masar.backend.exception.UnverifiedAccountException;
 import com.masar.backend.dto.user.RegisterRequest;
 import com.masar.backend.exception.EmailAlreadyExistsException;
+import com.masar.backend.model.RecruiterProfile;
 import com.masar.backend.model.SeekerProfile;
 import com.masar.backend.model.User;
+import com.masar.backend.repository.RecruiterProfileRepository;
 import com.masar.backend.repository.SeekerProfileRepository;
 import com.masar.backend.repository.UserRepository;
 import com.masar.backend.security.JwtService;
@@ -55,6 +57,7 @@ class AuthServiceTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private OtpService otpService;
     @Mock private SeekerProfileRepository seekerProfileRepository;
+    @Mock private RecruiterProfileRepository recruiterProfileRepository;
 
     @InjectMocks
     private AuthService authService;
@@ -214,18 +217,20 @@ class AuthServiceTest {
             assertThat(response.getToken()).isEqualTo("token");
             verify(userRepository).save(user);
             verify(seekerProfileRepository).save(any(SeekerProfile.class));
+            verify(recruiterProfileRepository, never()).save(any());
             verify(otpService).clear("ali@mail.com");
         }
 
         @Test
-        @DisplayName("recruiter gets no seeker profile")
-        void recruiterHasNoSeekerProfile() {
+        @DisplayName("recruiter gets a recruiter profile and no seeker profile")
+        void recruiterGetsRecruiterProfile() {
             user.setRole(Role.RECRUITER);
             when(userRepository.findByEmail("ali@mail.com")).thenReturn(Optional.of(user));
             when(jwtService.generateToken(user)).thenReturn("token");
 
             authService.verifyOtp(request);
 
+            verify(recruiterProfileRepository).save(any(RecruiterProfile.class));
             verify(seekerProfileRepository, never()).save(any());
         }
 

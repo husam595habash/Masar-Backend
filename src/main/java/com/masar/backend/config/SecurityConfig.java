@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/seekers/**").hasRole("JOB_SEEKER")
                         .requestMatchers("/api/recruiters/**").hasRole("RECRUITER")
+                        .requestMatchers("/api/companies/**").hasRole("RECRUITER")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))

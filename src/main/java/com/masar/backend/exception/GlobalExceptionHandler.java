@@ -32,6 +32,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 409: the request conflicts with existing data (e.g. company name already taken).
+     */
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleConflict(ConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorBody(ex.getMessage()));
+    }
+
+    /**
      * 400: @Valid failed. Joins all field errors into one message (field: message).
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -38,4 +38,8 @@ public class SeekerProfile {
     @Column(nullable = false)
     @Builder.Default
     private short yearsExperience = 0;
+
+    /** Path of the uploaded CV in the storage (null when there is none). */
+    @Column(length = 255)
+    private String cvPath;
 }

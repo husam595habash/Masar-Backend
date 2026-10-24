@@ -50,9 +50,6 @@ public class User {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(nullable = true)
-    private String cvPath;
-
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private SeekerProfile seekerProfile;
 }

@@ -15,16 +15,7 @@ public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByEmail(String email);
 
     /**
-     * Changes only the CV path (null removes it). A plain save() would write the whole user
-     * back, and a password change made while the upload was running could be overwritten.
-     */
-    @Transactional
-    @Modifying
-    @Query("update User u set u.cvPath = :cvPath where u.id = :id")
-    int updateCvPath(@Param("id") String id, @Param("cvPath") String cvPath);
-
-    /**
-     * Changes only the full name (same reason as updateCvPath: never write the whole user back).
+     * Changes only the full name (never write the whole user back with save).
      * clearAutomatically makes the next read load the new name from the database.
      */
     @Transactional

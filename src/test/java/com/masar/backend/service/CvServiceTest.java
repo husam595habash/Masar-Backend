@@ -1,12 +1,11 @@
 package com.masar.backend.service;
 
 import com.masar.backend.dto.cv.CvLinkResponse;
-import com.masar.backend.enums.Role;
 import com.masar.backend.exception.InvalidFileException;
 import com.masar.backend.exception.ResourceNotFoundException;
 import com.masar.backend.exception.StorageException;
-import com.masar.backend.model.User;
-import com.masar.backend.repository.UserRepository;
+import com.masar.backend.model.SeekerProfile;
+import com.masar.backend.repository.SeekerProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -41,19 +40,19 @@ class CvServiceTest {
 
     private static final String EMAIL = "ali@mail.com";
 
-    @Mock private UserRepository userRepository;
+    @Mock private SeekerProfileRepository seekerProfileRepository;
     @Mock private StorageService storageService;
     @Mock private PdfValidator pdfValidator;
 
     @InjectMocks
     private CvService cvService;
 
-    private User user;
+    private SeekerProfile profile;
     private MockMultipartFile file;
 
     @BeforeEach
     void setUp() {
-        user = User.builder().id("u-1").email(EMAIL).fullName("Ali").role(Role.JOB_SEEKER).verified(true).build();
+        profile = SeekerProfile.builder().userId("u-1").build();
         file = new MockMultipartFile("file", "ali-cv.pdf", "application/pdf",
                 "%PDF-1.7 body".getBytes(StandardCharsets.US_ASCII));
     }
@@ -65,37 +64,37 @@ class CvServiceTest {
         @Test
         @DisplayName("first CV: file goes to storage under the user's folder and the path is saved")
         void first() throws Exception {
-            when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+            when(seekerProfileRepository.findByUserEmail(EMAIL)).thenReturn(Optional.of(profile));
 
             cvService.upload(EMAIL, file);
 
             ArgumentCaptor<String> path = ArgumentCaptor.forClass(String.class);
             verify(storageService).upload(path.capture(), eq(file.getBytes()), eq("application/pdf"));
             assertThat(path.getValue()).startsWith("u-1/").endsWith(".pdf");
-            verify(userRepository).updateCvPath("u-1", path.getValue());
+            verify(seekerProfileRepository).updateCvPath("u-1", path.getValue());
             verify(storageService, never()).delete(anyString());
         }
 
         @Test
         @DisplayName("replacing: upload new, save the path, then delete the old file (in that order)")
         void replace() {
-            user.setCvPath("u-1/old.pdf");
-            when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+            profile.setCvPath("u-1/old.pdf");
+            when(seekerProfileRepository.findByUserEmail(EMAIL)).thenReturn(Optional.of(profile));
 
             cvService.upload(EMAIL, file);
 
-            InOrder order = inOrder(storageService, userRepository);
+            InOrder order = inOrder(storageService, seekerProfileRepository);
             order.verify(storageService).upload(anyString(), any(), anyString());
-            order.verify(userRepository).updateCvPath(eq("u-1"), anyString());
+            order.verify(seekerProfileRepository).updateCvPath(eq("u-1"), anyString());
             order.verify(storageService).delete("u-1/old.pdf");
         }
 
         @Test
         @DisplayName("saving the path fails: the new file is removed and the old CV stays")
         void saveFails() {
-            user.setCvPath("u-1/old.pdf");
-            when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
-            when(userRepository.updateCvPath(eq("u-1"), anyString())).thenThrow(new IllegalStateException("db down"));
+            profile.setCvPath("u-1/old.pdf");
+            when(seekerProfileRepository.findByUserEmail(EMAIL)).thenReturn(Optional.of(profile));
+            when(seekerProfileRepository.updateCvPath(eq("u-1"), anyString())).thenThrow(new IllegalStateException("db down"));
 
             assertThatThrownBy(() -> cvService.upload(EMAIL, file)).isInstanceOf(IllegalStateException.class);
 
@@ -108,8 +107,8 @@ class CvServiceTest {
         @Test
         @DisplayName("failing to delete the old file does not fail the upload")
         void oldFileDeleteFails() {
-            user.setCvPath("u-1/old.pdf");
-            when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+            profile.setCvPath("u-1/old.pdf");
+            when(seekerProfileRepository.findByUserEmail(EMAIL)).thenReturn(Optional.of(profile));
             doThrow(new StorageException()).when(storageService).delete("u-1/old.pdf");
 
             assertThatCode(() -> cvService.upload(EMAIL, file)).doesNotThrowAnyException();
@@ -122,18 +121,18 @@ class CvServiceTest {
 
             assertThatThrownBy(() -> cvService.upload(EMAIL, file)).isInstanceOf(InvalidFileException.class);
 
-            verifyNoInteractions(storageService, userRepository);
+            verifyNoInteractions(storageService, seekerProfileRepository);
         }
 
         @Test
         @DisplayName("storage failure: the path is not saved")
         void storageFails() {
-            when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+            when(seekerProfileRepository.findByUserEmail(EMAIL)).thenReturn(Optional.of(profile));
             doThrow(new StorageException()).when(storageService).upload(anyString(), any(), anyString());
 
             assertThatThrownBy(() -> cvService.upload(EMAIL, file)).isInstanceOf(StorageException.class);
 
-            verify(userRepository, never()).updateCvPath(any(), any());
+            verify(seekerProfileRepository, never()).updateCvPath(any(), any());
         }
     }
 
@@ -144,8 +143,8 @@ class CvServiceTest {
         @Test
         @DisplayName("returns a signed link that lives 5 minutes")
         void success() {
-            user.setCvPath("u-1/cv.pdf");
-            when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+            profile.setCvPath("u-1/cv.pdf");
+            when(seekerProfileRepository.findByUserEmail(EMAIL)).thenReturn(Optional.of(profile));
             when(storageService.createSignedUrl("u-1/cv.pdf", Duration.ofMinutes(5))).thenReturn("https://signed");
 
             CvLinkResponse response = cvService.createLink(EMAIL);
@@ -157,7 +156,7 @@ class CvServiceTest {
         @Test
         @DisplayName("no CV uploaded yet: not found")
         void noCv() {
-            when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+            when(seekerProfileRepository.findByUserEmail(EMAIL)).thenReturn(Optional.of(profile));
 
             assertThatThrownBy(() -> cvService.createLink(EMAIL)).isInstanceOf(ResourceNotFoundException.class);
             verifyNoInteractions(storageService);
@@ -171,32 +170,32 @@ class CvServiceTest {
         @Test
         @DisplayName("deletes the file first, then clears the path")
         void success() {
-            user.setCvPath("u-1/cv.pdf");
-            when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+            profile.setCvPath("u-1/cv.pdf");
+            when(seekerProfileRepository.findByUserEmail(EMAIL)).thenReturn(Optional.of(profile));
 
             cvService.delete(EMAIL);
 
-            InOrder order = inOrder(storageService, userRepository);
+            InOrder order = inOrder(storageService, seekerProfileRepository);
             order.verify(storageService).delete("u-1/cv.pdf");
-            order.verify(userRepository).updateCvPath("u-1", null);
+            order.verify(seekerProfileRepository).updateCvPath("u-1", null);
         }
 
         @Test
         @DisplayName("storage failure keeps the path so the user can try again")
         void storageFails() {
-            user.setCvPath("u-1/cv.pdf");
-            when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+            profile.setCvPath("u-1/cv.pdf");
+            when(seekerProfileRepository.findByUserEmail(EMAIL)).thenReturn(Optional.of(profile));
             doThrow(new StorageException()).when(storageService).delete("u-1/cv.pdf");
 
             assertThatThrownBy(() -> cvService.delete(EMAIL)).isInstanceOf(StorageException.class);
 
-            verify(userRepository, never()).updateCvPath(any(), any());
+            verify(seekerProfileRepository, never()).updateCvPath(any(), any());
         }
 
         @Test
         @DisplayName("no CV uploaded yet: not found")
         void noCv() {
-            when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+            when(seekerProfileRepository.findByUserEmail(EMAIL)).thenReturn(Optional.of(profile));
 
             assertThatThrownBy(() -> cvService.delete(EMAIL)).isInstanceOf(ResourceNotFoundException.class);
             verifyNoInteractions(storageService);

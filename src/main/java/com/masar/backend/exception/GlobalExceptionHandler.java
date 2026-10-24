@@ -32,6 +32,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 400: the request is invalid for a business reason (e.g. min salary above max salary).
+     */
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<Map<String, Object>> handleBadRequest(BadRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody(ex.getMessage()));
+    }
+
+    /**
      * 409: the request conflicts with existing data (e.g. company name already taken).
      */
     @ExceptionHandler(ConflictException.class)
